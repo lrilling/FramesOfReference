@@ -32,10 +32,10 @@ public class CameraOrbit : MonoBehaviour {
      {
          if (target)
          {
-             if (Input.GetMouseButton(1))
+             if (Input.GetMouseButton(0) && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.LeftControl)))
              {
-                 velocityX += xSpeed * Input.GetAxis("Mouse X") * distance * 0.02f;
-                 velocityY += ySpeed * Input.GetAxis("Mouse Y") * 0.02f;
+                 velocityX += xSpeed * Input.GetAxis("Mouse X") * distance * 0.1f;
+                 velocityY += ySpeed * Input.GetAxis("Mouse Y") * distance * 0.1f;
              }
              rotationYAxis += velocityX;
              rotationXAxis -= velocityY;

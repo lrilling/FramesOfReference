@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using System.Collections;
 using CommandUndoRedo;
@@ -83,10 +84,14 @@ namespace RuntimeGizmos
 
 		public LayerMask selectionMask = Physics.DefaultRaycastLayers;
 
+        public EventSystem eventSystem;
+
 		public Action onCheckForSelectedAxis;
 		public Action onDrawCustomGizmo;
 
+        public ObjectController objectController;
 		public Camera myCamera {get; private set;}
+
 
 		public bool isTransforming {get; private set;}
 		public float totalScaleAmount {get; private set;}
@@ -100,6 +105,7 @@ namespace RuntimeGizmos
 		Vector3 totalCenterPivotPoint;
 
 		public Transform mainTargetRoot {get {return (targetRootsOrdered.Count > 0) ? (useFirstSelectedAsMain) ? targetRootsOrdered[0] : targetRootsOrdered[targetRootsOrdered.Count - 1] : null;}}
+
 
 		AxisInfo axisInfo;
 		Axis nearAxis = Axis.None;
@@ -127,7 +133,6 @@ namespace RuntimeGizmos
 
 		static Material lineMaterial;
 		static Material outlineMaterial;
-
 		void Awake()
 		{
 			myCamera = GetComponent<Camera>();
@@ -636,29 +641,35 @@ namespace RuntimeGizmos
 				bool isAdding = Input.GetKey(AddSelection);
 				bool isRemoving = Input.GetKey(RemoveSelection);
 
-				RaycastHit hitInfo; 
-				if(Physics.Raycast(myCamera.ScreenPointToRay(Input.mousePosition), out hitInfo, Mathf.Infinity, selectionMask))
-				{
-					Transform target = hitInfo.transform;
+				RaycastHit hitInfo;
 
-					if(isAdding)
-					{
-						AddTarget(target);
-					}
-					else if(isRemoving)
-					{
-						RemoveTarget(target);
-					}
-					else if(!isAdding && !isRemoving)
-					{
-						ClearAndAddTarget(target);
-					}
-				}else{
-					if(!isAdding && !isRemoving)
-					{
-						ClearTargets();
-					}
-				}
+                Debug.Log(eventSystem.currentSelectedGameObject);
+                if (eventSystem.currentSelectedGameObject == null) {
+                    if(Physics.Raycast(myCamera.ScreenPointToRay(Input.mousePosition), out hitInfo, Mathf.Infinity, selectionMask))
+                    {
+                        Transform target = hitInfo.transform;
+                        if (target.gameObject.layer != LayerMask.NameToLayer("UI")) {
+                            if(isAdding)
+                            {
+                                AddTarget(target);
+                            }
+                            else if(isRemoving)
+                            {
+                                RemoveTarget(target);
+                            }
+                            else if(!isAdding && !isRemoving)
+                            {
+                                ClearAndAddTarget(target);
+                            }
+                        }
+                    } else {
+                        if(!isAdding && !isRemoving)
+                        {
+                            Debug.Log("Clicked somewhere outside Items and outside UI");
+                            ClearTargets();
+                        }
+                    }
+                }
 			}
 		}
 
@@ -666,6 +677,7 @@ namespace RuntimeGizmos
 		{
 			if(target != null)
 			{
+                Debug.Log("Adding Target", target);
 				if(targetRoots.ContainsKey(target)) return;
 				if(children.Contains(target)) return;
 
@@ -675,6 +687,7 @@ namespace RuntimeGizmos
 				AddTargetHighlightedRenderers(target);
 
 				SetPivotPoint();
+                objectController.Add(target);
 			}
 		}
 
@@ -690,6 +703,7 @@ namespace RuntimeGizmos
 				RemoveTargetRoot(target);
 
 				SetPivotPoint();
+                objectController.Remove(target);
 			}
 		}
 
@@ -701,6 +715,7 @@ namespace RuntimeGizmos
 			targetRoots.Clear();
 			targetRootsOrdered.Clear();
 			children.Clear();
+            objectController.RemoveAll();
 		}
 
 		void ClearAndAddTarget(Transform target)
